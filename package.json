@@ -1,0 +1,17 @@
+{
+  "name": "streamtv-server",
+  "version": "1.0.0",
+  "description": "Stream URL resolver for 7400TV",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.18.2",
+    "twitch-m3u8": "^1.1.5"
+  }
+}
