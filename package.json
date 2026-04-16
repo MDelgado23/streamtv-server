@@ -11,7 +11,9 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@supabase/supabase-js": "^2.103.3",
     "express": "^4.18.2",
+    "express-session": "^1.19.0",
     "twitch-m3u8": "^1.1.5"
   }
 }
