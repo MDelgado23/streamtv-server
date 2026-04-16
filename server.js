@@ -1,6 +1,7 @@
 const express = require('express');
 const session = require('express-session');
 const twitch = require('twitch-m3u8');
+const ytdl = require('@distube/ytdl-core');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -42,6 +43,7 @@ app.get('/channels', async (req, res) => {
     res.json(data);
 });
 
+// Twitch: GET /stream?channel=radioolavarria
 app.get('/stream', async (req, res) => {
     const channel = req.query.channel;
     if (!channel) {
@@ -55,6 +57,29 @@ app.get('/stream', async (req, res) => {
         res.json({ url: best.url });
     } catch (error) {
         res.status(500).json({ error: 'No se pudo obtener el stream', detail: error.message });
+    }
+});
+
+// YouTube: GET /stream/youtube?url=https://youtube.com/watch?v=xxx
+app.get('/stream/youtube', async (req, res) => {
+    const url = req.query.url;
+    if (!url) {
+        return res.status(400).json({ error: 'Falta el parámetro url' });
+    }
+
+    try {
+        const info = await ytdl.getInfo(url);
+        // Para livestreams buscamos el formato HLS (m3u8)
+        const liveFormat = info.formats.find(f => f.isHLS);
+        // Para videos normales buscamos el mejor formato con audio y video
+        const normalFormat = ytdl.chooseFormat(info.formats, { quality: 'highestvideo', filter: 'audioandvideo' });
+
+        const format = liveFormat || normalFormat;
+        if (!format) return res.status(404).json({ error: 'No se encontró formato compatible' });
+
+        res.json({ url: format.url });
+    } catch (error) {
+        res.status(500).json({ error: 'No se pudo obtener el stream de YouTube', detail: error.message });
     }
 });
 
