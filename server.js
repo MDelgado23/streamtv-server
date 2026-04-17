@@ -2,15 +2,9 @@ const express = require('express');
 const session = require('express-session');
 const twitch = require('twitch-m3u8');
 const { createClient } = require('@supabase/supabase-js');
+const ytDlp = require('yt-dlp-exec');
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
-
-// Instancias de Piped API — si la primera falla, prueba la siguiente
-const PIPED_INSTANCES = [
-    'https://pipedapi.kavin.rocks',
-    'https://api.piped.yt',
-    'https://pipedapi.adminforge.de',
-];
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -97,24 +91,18 @@ app.get('/stream/youtube', async (req, res) => {
             return res.status(404).json({ error: 'Canal sin transmisión en vivo actualmente' });
         }
 
-        // 2. Obtener la URL HLS del stream via Piped API (fallback entre instancias)
-        let hlsUrl = null;
-        for (const instance of PIPED_INSTANCES) {
-            try {
-                const pipedRes = await fetch(`${instance}/streams/${videoId}`, {
-                    headers: { 'User-Agent': 'Mozilla/5.0' },
-                    signal: AbortSignal.timeout(8000)
-                });
-                console.log(`[Piped] ${instance} → status: ${pipedRes.status}`);
-                if (!pipedRes.ok) continue;
-                const pipedData = await pipedRes.json();
-                console.log(`[Piped] hls: ${pipedData.hls || 'null'}`);
-                hlsUrl = pipedData.hls;
-                if (hlsUrl) break;
-            } catch (err) {
-                console.warn(`[Piped] Instancia ${instance} falló:`, err.message);
-            }
-        }
+        // 2. Extraer URL HLS via yt-dlp
+        console.log(`[yt-dlp] Extrayendo URL para videoId: ${videoId}`);
+        const result = await ytDlp(`https://www.youtube.com/watch?v=${videoId}`, {
+            getUrl: true,
+            format: 'best[protocol=m3u8_native]/best',
+            noCheckCertificates: true,
+            noWarnings: true,
+            preferFreeFormats: true,
+        });
+
+        const hlsUrl = typeof result === 'string' ? result.trim() : null;
+        console.log(`[yt-dlp] URL obtenida: ${hlsUrl ? hlsUrl.substring(0, 80) + '...' : 'null'}`);
 
         if (!hlsUrl) {
             return res.status(503).json({ error: 'No se pudo obtener la URL HLS del stream' });
