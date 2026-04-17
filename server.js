@@ -92,6 +92,7 @@ app.get('/stream/youtube', async (req, res) => {
         }
 
         const videoId = searchData.items?.[0]?.id?.videoId;
+        console.log(`[YouTube] Channel ${channelId} → videoId: ${videoId || 'none (not live)'}`);
         if (!videoId) {
             return res.status(404).json({ error: 'Canal sin transmisión en vivo actualmente' });
         }
@@ -104,8 +105,10 @@ app.get('/stream/youtube', async (req, res) => {
                     headers: { 'User-Agent': 'Mozilla/5.0' },
                     signal: AbortSignal.timeout(8000)
                 });
+                console.log(`[Invidious] ${instance} → status: ${invRes.status}`);
                 if (!invRes.ok) continue;
                 const invData = await invRes.json();
+                console.log(`[Invidious] hlsUrl: ${invData.hlsUrl || 'null'}`);
                 hlsUrl = invData.hlsUrl;
                 if (hlsUrl) break;
             } catch (err) {
