@@ -5,11 +5,11 @@ const { createClient } = require('@supabase/supabase-js');
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
-// Instancias de Invidious públicas — si la primera falla, prueba la siguiente
-const INVIDIOUS_INSTANCES = [
-    'https://inv.nadeko.net',
-    'https://invidious.nerdvpn.de',
-    'https://invidious.privacyredirect.com',
+// Instancias de Piped API — si la primera falla, prueba la siguiente
+const PIPED_INSTANCES = [
+    'https://pipedapi.kavin.rocks',
+    'https://api.piped.yt',
+    'https://pipedapi.adminforge.de',
 ];
 
 const app = express();
@@ -97,22 +97,22 @@ app.get('/stream/youtube', async (req, res) => {
             return res.status(404).json({ error: 'Canal sin transmisión en vivo actualmente' });
         }
 
-        // 2. Obtener la URL HLS del stream via Invidious (fallback entre instancias)
+        // 2. Obtener la URL HLS del stream via Piped API (fallback entre instancias)
         let hlsUrl = null;
-        for (const instance of INVIDIOUS_INSTANCES) {
+        for (const instance of PIPED_INSTANCES) {
             try {
-                const invRes = await fetch(`${instance}/api/v1/videos/${videoId}`, {
+                const pipedRes = await fetch(`${instance}/streams/${videoId}`, {
                     headers: { 'User-Agent': 'Mozilla/5.0' },
                     signal: AbortSignal.timeout(8000)
                 });
-                console.log(`[Invidious] ${instance} → status: ${invRes.status}`);
-                if (!invRes.ok) continue;
-                const invData = await invRes.json();
-                console.log(`[Invidious] hlsUrl: ${invData.hlsUrl || 'null'}`);
-                hlsUrl = invData.hlsUrl;
+                console.log(`[Piped] ${instance} → status: ${pipedRes.status}`);
+                if (!pipedRes.ok) continue;
+                const pipedData = await pipedRes.json();
+                console.log(`[Piped] hls: ${pipedData.hls || 'null'}`);
+                hlsUrl = pipedData.hls;
                 if (hlsUrl) break;
             } catch (err) {
-                console.warn(`[Invidious] Instancia ${instance} falló:`, err.message);
+                console.warn(`[Piped] Instancia ${instance} falló:`, err.message);
             }
         }
 
