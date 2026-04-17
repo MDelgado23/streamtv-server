@@ -1,8 +1,16 @@
 const express = require('express');
 const session = require('express-session');
 const twitch = require('twitch-m3u8');
-const ytdl = require('@distube/ytdl-core');
 const { createClient } = require('@supabase/supabase-js');
+
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+
+// Instancias de Invidious públicas — si la primera falla, prueba la siguiente
+const INVIDIOUS_INSTANCES = [
+    'https://inv.nadeko.net',
+    'https://invidious.nerdvpn.de',
+    'https://invidious.privacyredirect.com',
+];
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,26 +68,59 @@ app.get('/stream', async (req, res) => {
     }
 });
 
-// YouTube: GET /stream/youtube?url=https://youtube.com/watch?v=xxx
+// YouTube: GET /stream/youtube?channel=CHANNEL_ID
+// CHANNEL_ID = el ID del canal de YouTube (empieza con UC...)
 app.get('/stream/youtube', async (req, res) => {
-    const url = req.query.url;
-    if (!url) {
-        return res.status(400).json({ error: 'Falta el parámetro url' });
+    const channelId = req.query.channel;
+    if (!channelId) {
+        return res.status(400).json({ error: 'Falta el parámetro channel (YouTube Channel ID)' });
+    }
+
+    if (!YOUTUBE_API_KEY) {
+        return res.status(500).json({ error: 'YOUTUBE_API_KEY no configurada en el servidor' });
     }
 
     try {
-        const info = await ytdl.getInfo(url);
-        // Para livestreams buscamos el formato HLS (m3u8)
-        const liveFormat = info.formats.find(f => f.isHLS);
-        // Para videos normales buscamos el mejor formato con audio y video
-        const normalFormat = ytdl.chooseFormat(info.formats, { quality: 'highestvideo', filter: 'audioandvideo' });
+        // 1. Buscar el video en vivo actual del canal via YouTube Data API v3
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?channelId=${channelId}&eventType=live&type=video&part=id&key=${YOUTUBE_API_KEY}`;
+        const searchRes = await fetch(searchUrl);
+        const searchData = await searchRes.json();
 
-        const format = liveFormat || normalFormat;
-        if (!format) return res.status(404).json({ error: 'No se encontró formato compatible' });
+        if (searchData.error) {
+            console.error('[YouTube API] Error:', searchData.error.message);
+            return res.status(500).json({ error: 'Error consultando YouTube API', detail: searchData.error.message });
+        }
 
-        res.json({ url: format.url });
+        const videoId = searchData.items?.[0]?.id?.videoId;
+        if (!videoId) {
+            return res.status(404).json({ error: 'Canal sin transmisión en vivo actualmente' });
+        }
+
+        // 2. Obtener la URL HLS del stream via Invidious (fallback entre instancias)
+        let hlsUrl = null;
+        for (const instance of INVIDIOUS_INSTANCES) {
+            try {
+                const invRes = await fetch(`${instance}/api/v1/videos/${videoId}`, {
+                    headers: { 'User-Agent': 'Mozilla/5.0' },
+                    signal: AbortSignal.timeout(8000)
+                });
+                if (!invRes.ok) continue;
+                const invData = await invRes.json();
+                hlsUrl = invData.hlsUrl;
+                if (hlsUrl) break;
+            } catch (err) {
+                console.warn(`[Invidious] Instancia ${instance} falló:`, err.message);
+            }
+        }
+
+        if (!hlsUrl) {
+            return res.status(503).json({ error: 'No se pudo obtener la URL HLS del stream' });
+        }
+
+        res.json({ url: hlsUrl });
     } catch (error) {
-        res.status(500).json({ error: 'No se pudo obtener el stream de YouTube', detail: error.message });
+        console.error('[YouTube] Error:', error.message, '— channel:', channelId);
+        res.status(500).json({ error: 'Error obteniendo stream de YouTube', detail: error.message });
     }
 });
 
@@ -315,8 +356,8 @@ function dashboardPage(channels) {
                     <input type="text" name="twitch_username" id="f-twitch_username" placeholder="radioolavarria" />
                 </div>
                 <div class="field">
-                    <label>URL de stream (YouTube u otro)</label>
-                    <input type="text" name="stream_url" id="f-stream_url" placeholder="https://..." />
+                    <label>YouTube Channel ID <span style="color:#94A3B8;font-weight:400">(si fuente es YouTube)</span></label>
+                    <input type="text" name="stream_url" id="f-stream_url" placeholder="UCba3hpU7EFBSk817y9qZkiA" />
                 </div>
                 <div class="field">
                     <label>Fuente</label>
