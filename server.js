@@ -14,6 +14,28 @@ const supabase = createClient(
     process.env.SUPABASE_KEY
 );
 
+// ─── Caché de canales ──────────────────────────────────────────────────────────
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+let channelsCache = null;
+let cacheTimestamp = 0;
+
+async function getChannels() {
+    const now = Date.now();
+    if (channelsCache && (now - cacheTimestamp) < CACHE_TTL_MS) {
+        return channelsCache;
+    }
+    const { data, error } = await supabase
+        .from('channels')
+        .select('*')
+        .eq('active', true)
+        .order('name');
+    if (error) throw error;
+    channelsCache = data;
+    cacheTimestamp = now;
+    console.log(`[cache] channels refreshed — ${data.length} canales`);
+    return channelsCache;
+}
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -34,14 +56,12 @@ function requireAuth(req, res, next) {
 // ─── API pública ───────────────────────────────────────────────────────────────
 
 app.get('/channels', async (req, res) => {
-    const { data, error } = await supabase
-        .from('channels')
-        .select('*')
-        .eq('active', true)
-        .order('name');
-
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    try {
+        const data = await getChannels();
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Twitch: GET /stream?channel=radioolavarria
@@ -125,6 +145,7 @@ app.post('/admin/logout', (req, res) => {
 // ─── Admin: dashboard ──────────────────────────────────────────────────────────
 
 app.get('/admin', requireAuth, async (req, res) => {
+    // El admin siempre ve datos frescos de Supabase (ignora caché)
     const { data: channels } = await supabase
         .from('channels')
         .select('*')
@@ -149,6 +170,7 @@ app.post('/admin/channels', requireAuth, async (req, res) => {
     });
 
     if (error) return res.status(500).send(`Error: ${error.message}`);
+    channelsCache = null; // invalidar caché
     res.redirect('/admin');
 });
 
@@ -166,12 +188,14 @@ app.post('/admin/channels/:id/edit', requireAuth, async (req, res) => {
     }).eq('id', req.params.id);
 
     if (error) return res.status(500).send(`Error: ${error.message}`);
+    channelsCache = null; // invalidar caché
     res.redirect('/admin');
 });
 
 app.post('/admin/channels/:id/delete', requireAuth, async (req, res) => {
     const { error } = await supabase.from('channels').delete().eq('id', req.params.id);
     if (error) return res.status(500).send(`Error: ${error.message}`);
+    channelsCache = null; // invalidar caché
     res.redirect('/admin');
 });
 
