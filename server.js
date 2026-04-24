@@ -290,11 +290,9 @@ function dashboardPage(channels) {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0F172A;
+            background: #060B14;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             padding: 16px;
         }
 
@@ -302,44 +300,44 @@ function dashboardPage(channels) {
         .tv-frame {
             width: 100%; max-width: 1280px;
             aspect-ratio: 16/9;
-            background: #F5F7FA;
+            background: #0D1526;
             border-radius: 8px; overflow: hidden;
             display: flex; flex-direction: column;
-            box-shadow: 0 0 0 6px #1E293B, 0 0 0 9px #0F172A, 0 24px 64px rgba(0,0,0,0.7);
+            box-shadow: 0 0 0 6px #1E293B, 0 0 0 9px #060B14, 0 24px 64px rgba(0,0,0,0.9);
         }
 
         /* Topbar */
         .topbar {
-            background: #FFFFFF; height: 80px; min-height: 80px; flex-shrink: 0;
+            background: #131F35; height: 80px; min-height: 80px; flex-shrink: 0;
             display: flex; align-items: center; padding: 0 28px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+            border-bottom: 1px solid #1E2D45;
         }
-        .topbar-logo { font-size: 20px; font-weight: 800; color: #1E293B; }
+        .topbar-logo { font-size: 20px; font-weight: 800; color: #E2E8F0; }
         .topbar-logo span { color: #00AEEF; }
         .topbar-spacer { flex: 1; }
-        .topbar-label { font-size: 11px; color: #94A3B8; margin-right: 16px; }
-        .clock { font-size: 18px; font-weight: 700; color: #1E293B; margin-right: 16px; }
+        .topbar-label { font-size: 11px; color: #475569; margin-right: 16px; }
+        .clock { font-size: 18px; font-weight: 700; color: #CBD5E1; margin-right: 16px; }
         .btn-logout {
-            background: none; border: 1px solid #E2E8F0;
+            background: none; border: 1px solid #2D3F5A;
             color: #64748B; font-size: 12px; font-family: inherit;
             padding: 6px 14px; border-radius: 6px; cursor: pointer;
         }
-        .btn-logout:hover { background: #F8FAFC; }
+        .btn-logout:hover { background: #1E2D45; color: #94A3B8; }
 
         /* Body */
         .body { flex: 1; display: flex; overflow: hidden; }
 
         /* Sidebar */
         .sidebar {
-            width: 160px; min-width: 160px; background: #FFFFFF;
-            border-right: 1px solid #F0F2F5; overflow-y: auto; flex-shrink: 0;
+            width: 160px; min-width: 160px; background: #111827;
+            border-right: 1px solid #1E2D45; overflow-y: auto; flex-shrink: 0;
         }
         .sidebar::-webkit-scrollbar { width: 3px; }
-        .sidebar::-webkit-scrollbar-thumb { background: #E2E8F0; }
+        .sidebar::-webkit-scrollbar-thumb { background: #2D3F5A; }
 
         .sidebar-item { display: flex; align-items: stretch; cursor: pointer; transition: background 0.15s; }
-        .sidebar-item:hover { background: #F8FAFC; }
-        .sidebar-item.selected { background: #F0F4FF; }
+        .sidebar-item:hover { background: #1A2A42; }
+        .sidebar-item.selected { background: #172342; }
 
         .sidebar-accent { width: 3px; min-width: 3px; background: transparent; transition: background 0.15s; }
         .sidebar-item.selected .sidebar-accent { background: #00AEEF; }
@@ -347,41 +345,41 @@ function dashboardPage(channels) {
         .sidebar-content { flex: 1; display: flex; align-items: center; gap: 8px; padding: 9px 12px 9px 13px; }
         .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
         .dot-live { background: #DC2626; }
-        .dot-offline { background: #CBD5E1; }
+        .dot-offline { background: #334155; }
 
         .sidebar-text { flex: 1; min-width: 0; }
-        .sidebar-name { font-size: 11px; font-weight: 700; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .sidebar-desc { font-size: 9px; color: #AAAAAA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sidebar-name { font-size: 11px; font-weight: 700; color: #CBD5E1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sidebar-desc { font-size: 9px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .sidebar-badge { font-size: 8px; font-weight: 600; padding: 2px 5px; border-radius: 3px; flex-shrink: 0; }
-        .badge-vivo { color: #DC2626; background: #FEF2F2; }
-        .badge-offline { color: #64748B; background: #F1F5F9; }
+        .badge-vivo { color: #F87171; background: #3B1111; }
+        .badge-offline { color: #475569; background: #1E293B; }
 
         /* Main */
         .main-content { flex: 1; overflow-y: auto; padding: 16px; }
         .main-content::-webkit-scrollbar { width: 4px; }
-        .main-content::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 2px; }
+        .main-content::-webkit-scrollbar-thumb { background: #2D3F5A; border-radius: 2px; }
 
-        .section-label { font-size: 9px; letter-spacing: 0.12em; color: #AAAAAA; margin-bottom: 8px; font-weight: 500; }
+        .section-label { font-size: 9px; letter-spacing: 0.12em; color: #475569; margin-bottom: 8px; font-weight: 500; }
 
         .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); }
 
         /* Channel card */
         .card {
-            background: #FFFFFF; border-radius: 8px; margin: 6px; overflow: visible;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            background: #131F35; border-radius: 8px; margin: 6px; overflow: visible;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
             transition: transform 0.15s, box-shadow 0.15s;
             position: relative;
         }
-        .card:hover { transform: scale(1.04); box-shadow: 0 4px 20px rgba(0,0,0,0.18); z-index: 2; }
-        .card-inner { border-radius: 8px; overflow: hidden; }
+        .card:hover { transform: scale(1.04); box-shadow: 0 6px 24px rgba(0,0,0,0.6); z-index: 2; }
 
         .card-thumb {
             height: 90px; position: relative;
             display: flex; align-items: center; justify-content: center;
+            border-radius: 8px 8px 0 0; overflow: hidden;
         }
         .card-thumb-text { display: flex; flex-direction: column; align-items: center; padding: 8px; text-align: center; }
         .card-name-big { font-size: 18px; font-weight: 700; color: #FFFFFF; letter-spacing: 0.02em; line-height: 1.1; }
-        .card-desc-small { font-size: 10px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+        .card-desc-small { font-size: 10px; color: rgba(255,255,255,0.75); margin-top: 2px; }
         .badge-live {
             position: absolute; top: 6px; right: 6px;
             background: #DC2626; color: white;
@@ -391,7 +389,7 @@ function dashboardPage(channels) {
         /* Hover overlay with actions */
         .card-overlay {
             position: absolute; inset: 0; border-radius: 8px 8px 0 0;
-            background: rgba(0,0,0,0.65);
+            background: rgba(0,0,0,0.72);
             display: flex; gap: 8px; align-items: center; justify-content: center;
             opacity: 0; transition: opacity 0.2s;
         }
@@ -400,27 +398,26 @@ function dashboardPage(channels) {
         .overlay-btn {
             border: none; border-radius: 6px;
             font-size: 11px; font-weight: 600; font-family: inherit;
-            padding: 6px 10px; cursor: pointer;
-            transition: transform 0.1s;
+            padding: 6px 10px; cursor: pointer; transition: transform 0.1s;
         }
         .overlay-btn:hover { transform: scale(1.06); }
-        .btn-edit { background: #FFFFFF; color: #1E293B; }
+        .btn-edit { background: #E2E8F0; color: #1E293B; }
         .btn-delete { background: #DC2626; color: #FFFFFF; }
 
         .card-info { padding: 8px; }
-        .card-title { font-size: 12px; font-weight: 700; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .card-subtitle { font-size: 9px; color: #94A3B8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+        .card-title { font-size: 12px; font-weight: 700; color: #CBD5E1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-subtitle { font-size: 9px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
         .card-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; }
         .source-badge { font-size: 8px; padding: 2px 5px; border-radius: 3px; font-weight: 600; }
-        .source-badge.twitch { background: #F3EEFF; color: #6441a5; }
-        .source-badge.youtube { background: #FFF0F0; color: #FF0000; }
+        .source-badge.twitch { background: #2D1F4E; color: #A78BFA; }
+        .source-badge.youtube { background: #3B1111; color: #F87171; }
         .status-pill { font-size: 8px; padding: 2px 5px; border-radius: 3px; font-weight: 600; }
-        .status-active { background: #F0FDF4; color: #16A34A; }
-        .status-inactive { background: #F8F9FA; color: #94A3B8; }
+        .status-active { background: #052E16; color: #4ADE80; }
+        .status-inactive { background: #1E293B; color: #475569; }
 
         /* Ghost card */
         .card-ghost {
-            background: transparent; border: 2px dashed #CBD5E1;
+            background: transparent; border: 2px dashed #2D3F5A;
             box-shadow: none; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             min-height: 140px; opacity: 0.5;
@@ -429,48 +426,64 @@ function dashboardPage(channels) {
         .card-ghost:hover { opacity: 1; border-color: #00AEEF; transform: scale(1.04); box-shadow: none; }
         .card-ghost:hover .ghost-plus { color: #00AEEF; }
         .ghost-inner { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 20px; }
-        .ghost-plus { font-size: 28px; color: #CBD5E1; line-height: 1; transition: color 0.2s; }
-        .ghost-label { font-size: 10px; color: #94A3B8; font-weight: 500; }
+        .ghost-plus { font-size: 28px; color: #2D3F5A; line-height: 1; transition: color 0.2s; }
+        .ghost-label { font-size: 10px; color: #475569; font-weight: 500; }
 
         /* Bottombar */
         .bottombar {
-            background: #FFFFFF; height: 38px; min-height: 38px; flex-shrink: 0;
+            background: #131F35; height: 38px; min-height: 38px; flex-shrink: 0;
             display: flex; align-items: center; padding: 0 24px;
-            border-top: 1px solid #F0F2F5;
+            border-top: 1px solid #1E2D45;
         }
-        .hint { flex: 1; font-size: 11px; color: #BBBBBB; white-space: nowrap; }
-        .bottombar-brand { font-size: 9px; color: #DDDDDD; }
+        .hint { flex: 1; font-size: 11px; color: #334155; white-space: nowrap; }
+        .bottombar-brand { font-size: 9px; color: #334155; }
 
         /* Modal */
         .modal-overlay {
             display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.5); z-index: 100;
+            background: rgba(0,0,0,0.7); z-index: 100;
             align-items: center; justify-content: center;
         }
         .modal-overlay.open { display: flex; }
         .modal {
-            background: white; border-radius: 12px; padding: 28px;
+            background: #131F35; border-radius: 12px; padding: 28px;
             width: 100%; max-width: 480px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+            border: 1px solid #1E2D45;
         }
-        .modal h3 { font-size: 16px; margin-bottom: 20px; color: #1E293B; }
+        .modal h3 { font-size: 16px; margin-bottom: 20px; color: #E2E8F0; }
         .field { margin-bottom: 14px; }
         .field label { display: block; font-size: 12px; color: #64748B; font-weight: 500; margin-bottom: 5px; }
         .field input, .field select {
             width: 100%; padding: 9px 12px;
-            border: 1px solid #E2E8F0; border-radius: 8px;
-            font-size: 13px; outline: none; font-family: inherit;
+            background: #0D1526; border: 1px solid #2D3F5A; border-radius: 8px;
+            font-size: 13px; outline: none; font-family: inherit; color: #CBD5E1;
         }
         .field input:focus, .field select:focus { border-color: #00AEEF; }
-        .field-row { display: flex; gap: 10px; align-items: flex-end; }
-        .field-row .field { flex: 1; margin-bottom: 0; }
-        .color-preview { width: 32px; height: 32px; border-radius: 6px; border: 1px solid #E2E8F0; flex-shrink: 0; }
+        .field select option { background: #0D1526; }
         .field-inline { display: flex; align-items: center; gap: 10px; }
-        .field-inline input[type=checkbox] { width: auto; }
+        .field-inline input[type=checkbox] { width: auto; accent-color: #00AEEF; }
         .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-        .btn-cancel { background: #F5F7FA; color: #64748B; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: inherit; }
-        .btn-primary { background: #1E2D4A; color: white; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
-        .btn-primary:hover { background: #2a3d63; }
+        .btn-cancel { background: #1E2D45; color: #64748B; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: inherit; }
+        .btn-cancel:hover { background: #243552; }
+        .btn-primary { background: #0EA5E9; color: white; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .btn-primary:hover { background: #0284C7; }
+
+        /* Color picker */
+        .color-swatches { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .swatch {
+            width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.1s, border-color 0.1s;
+        }
+        .swatch:hover { transform: scale(1.18); }
+        .swatch.active { border-color: #FFFFFF; box-shadow: 0 0 0 2px #00AEEF; }
+        .color-custom-row { display: flex; align-items: center; gap: 8px; }
+        .color-custom-row input { flex: 1; }
+        .color-preview-box {
+            width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0;
+            border: 1px solid #2D3F5A;
+        }
     </style>
 </head>
 <body>
@@ -540,12 +553,13 @@ function dashboardPage(channels) {
                         <option value="YOUTUBE">YouTube</option>
                     </select>
                 </div>
-                <div class="field-row">
-                    <div class="field">
-                        <label>Color de card</label>
-                        <input type="text" name="color" id="f-color" placeholder="#2E3192" oninput="updatePreview(this.value)" />
+                <div class="field">
+                    <label>Color de card</label>
+                    <div class="color-swatches" id="color-swatches"></div>
+                    <div class="color-custom-row">
+                        <input type="text" name="color" id="f-color" placeholder="#2E3192" oninput="onColorInput(this.value)" />
+                        <div class="color-preview-box" id="color-preview"></div>
                     </div>
-                    <div class="color-preview" id="color-preview"></div>
                 </div>
                 <div class="field field-inline">
                     <input type="checkbox" name="active" id="f-active" checked />
@@ -574,6 +588,33 @@ function dashboardPage(channels) {
             });
         });
 
+        const PALETTE = [
+            '#2E3192','#1E40AF','#2563EB','#0EA5E9',
+            '#0891B2','#0D9488','#059669','#16A34A',
+            '#7C3AED','#9333EA','#C026D3','#DB2777',
+            '#DC2626','#EA580C','#D97706','#CA8A04',
+            '#475569','#334155','#1E293B','#0F172A',
+        ];
+
+        function buildSwatches(selectedColor) {
+            const container = document.getElementById('color-swatches');
+            container.innerHTML = PALETTE.map(c => {
+                const active = c.toLowerCase() === (selectedColor || '').toLowerCase() ? ' active' : '';
+                return \`<div class="swatch\${active}" style="background:\${c}" title="\${c}" onclick="selectColor('\${c}')"></div>\`;
+            }).join('');
+        }
+
+        function selectColor(color) {
+            document.getElementById('f-color').value = color;
+            document.getElementById('color-preview').style.background = color;
+            buildSwatches(color);
+        }
+
+        function onColorInput(val) {
+            document.getElementById('color-preview').style.background = val;
+            buildSwatches(val);
+        }
+
         function openNew() {
             document.getElementById('modal-title').textContent = 'Nuevo canal';
             document.getElementById('modal-form').action = '/admin/channels';
@@ -582,9 +623,8 @@ function dashboardPage(channels) {
             document.getElementById('f-twitch_username').value = '';
             document.getElementById('f-stream_url').value = '';
             document.getElementById('f-source_type').value = 'TWITCH';
-            document.getElementById('f-color').value = '#2E3192';
             document.getElementById('f-active').checked = true;
-            updatePreview('#2E3192');
+            selectColor('#2E3192');
             document.getElementById('overlay').classList.add('open');
         }
 
@@ -597,15 +637,12 @@ function dashboardPage(channels) {
             document.getElementById('f-twitch_username').value = c.twitch_username || '';
             document.getElementById('f-stream_url').value = c.stream_url || '';
             document.getElementById('f-source_type').value = c.source_type || 'TWITCH';
-            document.getElementById('f-color').value = c.color || '#2E3192';
             document.getElementById('f-active').checked = c.active;
-            updatePreview(c.color || '#2E3192');
+            selectColor(c.color || '#2E3192');
             document.getElementById('overlay').classList.add('open');
         }
 
         function closeModal() { document.getElementById('overlay').classList.remove('open'); }
-
-        function updatePreview(val) { document.getElementById('color-preview').style.background = val; }
 
         function deleteChannel(id, name) {
             if (!confirm('¿Eliminar ' + name + '?')) return;
