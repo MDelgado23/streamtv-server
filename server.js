@@ -2,8 +2,31 @@ const express = require('express');
 const session = require('express-session');
 const twitch = require('twitch-m3u8');
 const { createClient } = require('@supabase/supabase-js');
+const admin = require('firebase-admin');
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+
+// ─── Firebase Admin ────────────────────────────────────────────────────────────
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    admin.initializeApp({
+        credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
+    });
+} else {
+    console.warn('[FCM] FIREBASE_SERVICE_ACCOUNT not set — push notifications disabled');
+}
+
+async function notifyChannelUpdate() {
+    if (!admin.apps.length) return;
+    try {
+        await admin.messaging().send({
+            topic: 'canal_updates',
+            data: { type: 'channel_change' }
+        });
+        console.log('[FCM] channel_change sent to topic canal_updates');
+    } catch (e) {
+        console.error('[FCM] Error:', e.message);
+    }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -172,7 +195,8 @@ app.post('/admin/channels', requireAuth, async (req, res) => {
     });
 
     if (error) return res.status(500).send(`Error: ${error.message}`);
-    channelsCache = null; // invalidar caché
+    channelsCache = null;
+    notifyChannelUpdate();
     res.redirect('/admin');
 });
 
@@ -190,14 +214,16 @@ app.post('/admin/channels/:id/edit', requireAuth, async (req, res) => {
     }).eq('id', req.params.id);
 
     if (error) return res.status(500).send(`Error: ${error.message}`);
-    channelsCache = null; // invalidar caché
+    channelsCache = null;
+    notifyChannelUpdate();
     res.redirect('/admin');
 });
 
 app.post('/admin/channels/:id/delete', requireAuth, async (req, res) => {
     const { error } = await supabase.from('channels').delete().eq('id', req.params.id);
     if (error) return res.status(500).send(`Error: ${error.message}`);
-    channelsCache = null; // invalidar caché
+    channelsCache = null;
+    notifyChannelUpdate();
     res.redirect('/admin');
 });
 
