@@ -120,6 +120,8 @@ app.get('/stream/youtube', async (req, res) => {
     }
 });
 
+app.get('/', (req, res) => res.redirect('/admin'));
+
 // ─── Admin: login ──────────────────────────────────────────────────────────────
 
 app.get('/admin/login', (req, res) => {
@@ -239,23 +241,44 @@ function loginPage(error = '') {
 }
 
 function dashboardPage(channels) {
-    const rows = channels.map(c => `
-        <tr>
-            <td>
-                <span class="dot" style="background:${c.color}"></span>
-                ${c.name}
-            </td>
-            <td>${c.description || '—'}</td>
-            <td>${c.twitch_username || '—'}</td>
-            <td><span class="badge ${c.source_type.toLowerCase()}">${c.source_type}</span></td>
-            <td><span class="badge ${c.active ? 'active' : 'inactive'}">${c.active ? 'Activo' : 'Inactivo'}</span></td>
-            <td class="actions">
-                <button class="btn-edit" onclick="openEdit(${JSON.stringify(c).replace(/"/g, '&quot;')})">Editar</button>
-                <form method="POST" action="/admin/channels/${c.id}/delete" style="display:inline" onsubmit="return confirm('¿Eliminar ${c.name}?')">
-                    <button class="btn-delete" type="submit">Eliminar</button>
-                </form>
-            </td>
-        </tr>`).join('');
+    const sidebarItems = channels.map((c, i) => `
+        <div class="sidebar-item${i === 0 ? ' selected' : ''}" data-id="${esc(c.id)}">
+            <div class="sidebar-accent"></div>
+            <div class="sidebar-content">
+                <div class="dot ${c.active ? 'dot-live' : 'dot-offline'}"></div>
+                <div class="sidebar-text">
+                    <div class="sidebar-name">${esc(c.name)}</div>
+                    <div class="sidebar-desc">${esc(c.description || '')}</div>
+                </div>
+                <span class="sidebar-badge ${c.active ? 'badge-vivo' : 'badge-offline'}">${c.active ? 'VIVO' : 'OFFLINE'}</span>
+            </div>
+        </div>`).join('');
+
+    const cards = channels.map(c => {
+        const dataAttr = JSON.stringify(c).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+        return `
+        <div class="card">
+            <div class="card-thumb" style="background:${esc(c.color || '#2E3192')}">
+                <div class="card-thumb-text">
+                    <span class="card-name-big">${esc(c.name)}</span>
+                    ${c.description ? `<span class="card-desc-small">${esc(c.description)}</span>` : ''}
+                </div>
+                ${c.active ? '<span class="badge-live">● En vivo</span>' : ''}
+                <div class="card-overlay">
+                    <button class="overlay-btn btn-edit" data-channel="${dataAttr}" onclick="openEditFromData(this)">✏ Editar</button>
+                    <button class="overlay-btn btn-delete" onclick="deleteChannel('${esc(c.id)}','${esc(c.name)}')">🗑 Eliminar</button>
+                </div>
+            </div>
+            <div class="card-info">
+                <div class="card-title">${esc(c.name)}</div>
+                <div class="card-subtitle">${esc(c.description || '')}</div>
+                <div class="card-meta">
+                    <span class="source-badge ${esc((c.source_type||'').toLowerCase())}">${esc(c.source_type || '')}</span>
+                    <span class="status-pill ${c.active ? 'status-active' : 'status-inactive'}">${c.active ? 'Activo' : 'Inactivo'}</span>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
 
     return `<!DOCTYPE html>
 <html lang="es">
@@ -264,82 +287,233 @@ function dashboardPage(channels) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>7400TV Admin</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F5F7FA; color: #1E293B; }
-        header { background: white; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #E8ECF2; }
-        h1 { font-size: 18px; } h1 span { color: #00AEEF; }
-        .sub { font-size: 11px; color: #94A3B8; }
-        .logout { font-size: 12px; color: #94A3B8; cursor: pointer; background: none; border: none; }
-        main { padding: 32px; max-width: 1100px; margin: 0 auto; }
-        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .toolbar h2 { font-size: 15px; }
-        .btn-primary { background: #1E2D4A; color: white; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
-        .btn-primary:hover { background: #2a3d63; }
-        table { width: 100%; background: white; border-radius: 12px; border-collapse: collapse; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-        th { text-align: left; padding: 12px 16px; font-size: 11px; color: #94A3B8; letter-spacing: 0.08em; border-bottom: 1px solid #F0F2F5; }
-        td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid #F8F9FA; vertical-align: middle; }
-        tr:last-child td { border-bottom: none; }
-        .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
-        .badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
-        .badge.twitch { background: #F3EEFF; color: #6441a5; }
-        .badge.youtube { background: #FFF0F0; color: #FF0000; }
-        .badge.active { background: #F0FDF4; color: #16A34A; }
-        .badge.inactive { background: #F8F9FA; color: #94A3B8; }
-        .actions { display: flex; gap: 8px; }
-        .btn-edit { background: #F0F4FF; color: #1E2D4A; border: none; padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
-        .btn-delete { background: #FEF2F2; color: #DC2626; border: none; padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0F172A;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        /* TV frame */
+        .tv-frame {
+            width: 100%; max-width: 1280px;
+            aspect-ratio: 16/9;
+            background: #F5F7FA;
+            border-radius: 8px; overflow: hidden;
+            display: flex; flex-direction: column;
+            box-shadow: 0 0 0 6px #1E293B, 0 0 0 9px #0F172A, 0 24px 64px rgba(0,0,0,0.7);
+        }
+
+        /* Topbar */
+        .topbar {
+            background: #FFFFFF; height: 80px; min-height: 80px; flex-shrink: 0;
+            display: flex; align-items: center; padding: 0 28px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        }
+        .topbar-logo { font-size: 20px; font-weight: 800; color: #1E293B; }
+        .topbar-logo span { color: #00AEEF; }
+        .topbar-spacer { flex: 1; }
+        .topbar-label { font-size: 11px; color: #94A3B8; margin-right: 16px; }
+        .clock { font-size: 18px; font-weight: 700; color: #1E293B; margin-right: 16px; }
+        .btn-logout {
+            background: none; border: 1px solid #E2E8F0;
+            color: #64748B; font-size: 12px; font-family: inherit;
+            padding: 6px 14px; border-radius: 6px; cursor: pointer;
+        }
+        .btn-logout:hover { background: #F8FAFC; }
+
+        /* Body */
+        .body { flex: 1; display: flex; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar {
+            width: 160px; min-width: 160px; background: #FFFFFF;
+            border-right: 1px solid #F0F2F5; overflow-y: auto; flex-shrink: 0;
+        }
+        .sidebar::-webkit-scrollbar { width: 3px; }
+        .sidebar::-webkit-scrollbar-thumb { background: #E2E8F0; }
+
+        .sidebar-item { display: flex; align-items: stretch; cursor: pointer; transition: background 0.15s; }
+        .sidebar-item:hover { background: #F8FAFC; }
+        .sidebar-item.selected { background: #F0F4FF; }
+
+        .sidebar-accent { width: 3px; min-width: 3px; background: transparent; transition: background 0.15s; }
+        .sidebar-item.selected .sidebar-accent { background: #00AEEF; }
+
+        .sidebar-content { flex: 1; display: flex; align-items: center; gap: 8px; padding: 9px 12px 9px 13px; }
+        .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .dot-live { background: #DC2626; }
+        .dot-offline { background: #CBD5E1; }
+
+        .sidebar-text { flex: 1; min-width: 0; }
+        .sidebar-name { font-size: 11px; font-weight: 700; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sidebar-desc { font-size: 9px; color: #AAAAAA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sidebar-badge { font-size: 8px; font-weight: 600; padding: 2px 5px; border-radius: 3px; flex-shrink: 0; }
+        .badge-vivo { color: #DC2626; background: #FEF2F2; }
+        .badge-offline { color: #64748B; background: #F1F5F9; }
+
+        /* Main */
+        .main-content { flex: 1; overflow-y: auto; padding: 16px; }
+        .main-content::-webkit-scrollbar { width: 4px; }
+        .main-content::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 2px; }
+
+        .section-label { font-size: 9px; letter-spacing: 0.12em; color: #AAAAAA; margin-bottom: 8px; font-weight: 500; }
+
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); }
+
+        /* Channel card */
+        .card {
+            background: #FFFFFF; border-radius: 8px; margin: 6px; overflow: visible;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            transition: transform 0.15s, box-shadow 0.15s;
+            position: relative;
+        }
+        .card:hover { transform: scale(1.04); box-shadow: 0 4px 20px rgba(0,0,0,0.18); z-index: 2; }
+        .card-inner { border-radius: 8px; overflow: hidden; }
+
+        .card-thumb {
+            height: 90px; position: relative;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .card-thumb-text { display: flex; flex-direction: column; align-items: center; padding: 8px; text-align: center; }
+        .card-name-big { font-size: 18px; font-weight: 700; color: #FFFFFF; letter-spacing: 0.02em; line-height: 1.1; }
+        .card-desc-small { font-size: 10px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+        .badge-live {
+            position: absolute; top: 6px; right: 6px;
+            background: #DC2626; color: white;
+            font-size: 7px; font-weight: 600; padding: 2px 5px; border-radius: 3px;
+        }
+
+        /* Hover overlay with actions */
+        .card-overlay {
+            position: absolute; inset: 0; border-radius: 8px 8px 0 0;
+            background: rgba(0,0,0,0.65);
+            display: flex; gap: 8px; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .card:hover .card-overlay { opacity: 1; }
+
+        .overlay-btn {
+            border: none; border-radius: 6px;
+            font-size: 11px; font-weight: 600; font-family: inherit;
+            padding: 6px 10px; cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .overlay-btn:hover { transform: scale(1.06); }
+        .btn-edit { background: #FFFFFF; color: #1E293B; }
+        .btn-delete { background: #DC2626; color: #FFFFFF; }
+
+        .card-info { padding: 8px; }
+        .card-title { font-size: 12px; font-weight: 700; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-subtitle { font-size: 9px; color: #94A3B8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+        .card-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; }
+        .source-badge { font-size: 8px; padding: 2px 5px; border-radius: 3px; font-weight: 600; }
+        .source-badge.twitch { background: #F3EEFF; color: #6441a5; }
+        .source-badge.youtube { background: #FFF0F0; color: #FF0000; }
+        .status-pill { font-size: 8px; padding: 2px 5px; border-radius: 3px; font-weight: 600; }
+        .status-active { background: #F0FDF4; color: #16A34A; }
+        .status-inactive { background: #F8F9FA; color: #94A3B8; }
+
+        /* Ghost card */
+        .card-ghost {
+            background: transparent; border: 2px dashed #CBD5E1;
+            box-shadow: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 140px; opacity: 0.5;
+            transition: opacity 0.2s, transform 0.15s, border-color 0.2s;
+        }
+        .card-ghost:hover { opacity: 1; border-color: #00AEEF; transform: scale(1.04); box-shadow: none; }
+        .card-ghost:hover .ghost-plus { color: #00AEEF; }
+        .ghost-inner { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 20px; }
+        .ghost-plus { font-size: 28px; color: #CBD5E1; line-height: 1; transition: color 0.2s; }
+        .ghost-label { font-size: 10px; color: #94A3B8; font-weight: 500; }
+
+        /* Bottombar */
+        .bottombar {
+            background: #FFFFFF; height: 38px; min-height: 38px; flex-shrink: 0;
+            display: flex; align-items: center; padding: 0 24px;
+            border-top: 1px solid #F0F2F5;
+        }
+        .hint { flex: 1; font-size: 11px; color: #BBBBBB; white-space: nowrap; }
+        .bottombar-brand { font-size: 9px; color: #DDDDDD; }
+
         /* Modal */
-        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 10; align-items: center; justify-content: center; }
-        .overlay.open { display: flex; }
-        .modal { background: white; border-radius: 12px; padding: 28px; width: 100%; max-width: 480px; }
-        .modal h3 { font-size: 16px; margin-bottom: 20px; }
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 100;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: white; border-radius: 12px; padding: 28px;
+            width: 100%; max-width: 480px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .modal h3 { font-size: 16px; margin-bottom: 20px; color: #1E293B; }
         .field { margin-bottom: 14px; }
         .field label { display: block; font-size: 12px; color: #64748B; font-weight: 500; margin-bottom: 5px; }
-        .field input, .field select { width: 100%; padding: 9px 12px; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 13px; outline: none; }
+        .field input, .field select {
+            width: 100%; padding: 9px 12px;
+            border: 1px solid #E2E8F0; border-radius: 8px;
+            font-size: 13px; outline: none; font-family: inherit;
+        }
         .field input:focus, .field select:focus { border-color: #00AEEF; }
-        .field.inline { display: flex; align-items: center; gap: 10px; }
-        .field.inline label { margin: 0; }
-        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-        .btn-cancel { background: #F5F7FA; color: #64748B; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+        .field-row { display: flex; gap: 10px; align-items: flex-end; }
+        .field-row .field { flex: 1; margin-bottom: 0; }
         .color-preview { width: 32px; height: 32px; border-radius: 6px; border: 1px solid #E2E8F0; flex-shrink: 0; }
+        .field-inline { display: flex; align-items: center; gap: 10px; }
+        .field-inline input[type=checkbox] { width: auto; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn-cancel { background: #F5F7FA; color: #64748B; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: inherit; }
+        .btn-primary { background: #1E2D4A; color: white; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .btn-primary:hover { background: #2a3d63; }
     </style>
 </head>
 <body>
-    <header>
-        <div>
-            <h1>Conexion <span>7400</span></h1>
-            <p class="sub">Panel de administración</p>
+    <div class="tv-frame">
+
+        <header class="topbar">
+            <div class="topbar-logo">Conexion <span>7400</span></div>
+            <div class="topbar-spacer"></div>
+            <span class="topbar-label">Panel de administración</span>
+            <div class="clock" id="clock">00:00</div>
+            <form method="POST" action="/admin/logout" style="margin-left:16px">
+                <button class="btn-logout" type="submit">Cerrar sesión</button>
+            </form>
+        </header>
+
+        <div class="body">
+            <nav class="sidebar">
+                ${sidebarItems}
+            </nav>
+
+            <main class="main-content">
+                <div class="section-label">CANALES (${channels.length})</div>
+                <div class="cards-grid">
+                    ${cards}
+                    <div class="card card-ghost" onclick="openNew()" style="margin:6px">
+                        <div class="ghost-inner">
+                            <span class="ghost-plus">+</span>
+                            <span class="ghost-label">Nuevo canal</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
-        <form method="POST" action="/admin/logout">
-            <button class="logout" type="submit">Cerrar sesión</button>
-        </form>
-    </header>
 
-    <main>
-        <div class="toolbar">
-            <h2>Canales (${channels.length})</h2>
-            <button class="btn-primary" onclick="openNew()">+ Nuevo canal</button>
-        </div>
+        <footer class="bottombar">
+            <span class="hint">Hover sobre una card → Editar / Eliminar</span>
+            <span class="hint"></span>
+            <span class="hint"></span>
+            <span class="bottombar-brand">Conexion 7400 Multimedios</span>
+        </footer>
+    </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>NOMBRE</th>
-                    <th>DESCRIPCIÓN</th>
-                    <th>TWITCH USER</th>
-                    <th>FUENTE</th>
-                    <th>ESTADO</th>
-                    <th>ACCIONES</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${rows.length ? rows : '<tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:32px">Sin canales todavía</td></tr>'}
-            </tbody>
-        </table>
-    </main>
-
-    <!-- Modal nuevo/editar -->
-    <div class="overlay" id="overlay">
+    <div class="modal-overlay" id="overlay">
         <div class="modal">
             <h3 id="modal-title">Nuevo canal</h3>
             <form method="POST" id="modal-form">
@@ -366,15 +540,15 @@ function dashboardPage(channels) {
                         <option value="YOUTUBE">YouTube</option>
                     </select>
                 </div>
-                <div class="field" style="display:flex;gap:10px;align-items:flex-end">
-                    <div style="flex:1">
+                <div class="field-row">
+                    <div class="field">
                         <label>Color de card</label>
                         <input type="text" name="color" id="f-color" placeholder="#2E3192" oninput="updatePreview(this.value)" />
                     </div>
                     <div class="color-preview" id="color-preview"></div>
                 </div>
-                <div class="field inline">
-                    <input type="checkbox" name="active" id="f-active" checked style="width:auto" />
+                <div class="field field-inline">
+                    <input type="checkbox" name="active" id="f-active" checked />
                     <label for="f-active">Canal activo</label>
                 </div>
                 <div class="modal-actions">
@@ -386,6 +560,20 @@ function dashboardPage(channels) {
     </div>
 
     <script>
+        function tick() {
+            const now = new Date();
+            document.getElementById('clock').textContent =
+                String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+        }
+        tick(); setInterval(tick, 10000);
+
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+
         function openNew() {
             document.getElementById('modal-title').textContent = 'Nuevo canal';
             document.getElementById('modal-form').action = '/admin/channels';
@@ -400,7 +588,8 @@ function dashboardPage(channels) {
             document.getElementById('overlay').classList.add('open');
         }
 
-        function openEdit(c) {
+        function openEditFromData(btn) {
+            const c = JSON.parse(btn.dataset.channel);
             document.getElementById('modal-title').textContent = 'Editar canal';
             document.getElementById('modal-form').action = '/admin/channels/' + c.id + '/edit';
             document.getElementById('f-name').value = c.name || '';
@@ -414,12 +603,17 @@ function dashboardPage(channels) {
             document.getElementById('overlay').classList.add('open');
         }
 
-        function closeModal() {
-            document.getElementById('overlay').classList.remove('open');
-        }
+        function closeModal() { document.getElementById('overlay').classList.remove('open'); }
 
-        function updatePreview(val) {
-            document.getElementById('color-preview').style.background = val;
+        function updatePreview(val) { document.getElementById('color-preview').style.background = val; }
+
+        function deleteChannel(id, name) {
+            if (!confirm('¿Eliminar ' + name + '?')) return;
+            const f = document.createElement('form');
+            f.method = 'POST';
+            f.action = '/admin/channels/' + id + '/delete';
+            document.body.appendChild(f);
+            f.submit();
         }
 
         document.getElementById('overlay').addEventListener('click', function(e) {
@@ -428,6 +622,14 @@ function dashboardPage(channels) {
     </script>
 </body>
 </html>`;
+}
+
+function esc(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }
 
 // ─── Start ─────────────────────────────────────────────────────────────────────
