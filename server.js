@@ -49,12 +49,16 @@ async function getTwitchStreamUrl(channel) {
         },
         body: JSON.stringify({
             operationName: 'PlaybackAccessToken',
-            extensions: {
-                persistedQuery: {
-                    version: 1,
-                    sha256Hash: '0828119ded1c13477966434e15800ff57ddacf13ba1911c129dc2200705b0712'
-                }
-            },
+            query: `query PlaybackAccessToken($login: String!, $isLive: Boolean!, $vodID: ID!, $isVod: Boolean!, $playerType: String!) {
+  streamPlaybackAccessToken(channelName: $login, params: {platform: "web", playerBackend: "mediaplayer", playerType: $playerType}) @include(if: $isLive) {
+    value
+    signature
+  }
+  videoPlaybackAccessToken(id: $vodID, params: {platform: "web", playerBackend: "mediaplayer", playerType: $playerType}) @include(if: $isVod) {
+    value
+    signature
+  }
+}`,
             variables: {
                 isLive: true,
                 login: channel,
@@ -65,7 +69,11 @@ async function getTwitchStreamUrl(channel) {
         })
     });
 
-    if (!gqlRes.ok) throw new Error(`Twitch GQL error: ${gqlRes.status}`);
+    if (!gqlRes.ok) {
+        const body = await gqlRes.text();
+        console.error(`[Twitch] GQL ${gqlRes.status}:`, body.slice(0, 300));
+        throw new Error(`Twitch GQL error: ${gqlRes.status}`);
+    }
     const gqlData = await gqlRes.json();
     const accessToken = gqlData?.data?.streamPlaybackAccessToken;
 
