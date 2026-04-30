@@ -1,8 +1,113 @@
 const express = require('express');
 const session = require('express-session');
-const twitch = require('twitch-m3u8');
 const { createClient } = require('@supabase/supabase-js');
 const admin = require('firebase-admin');
+
+// ─── Twitch stream resolver ────────────────────────────────────────────────────
+
+let _twitchToken = null;
+let _tokenExpiry = 0;
+
+async function fetchTwitchAppToken() {
+    const clientId = process.env.TWITCH_CLIENT_ID;
+    const clientSecret = process.env.TWITCH_CLIENT_SECRET;
+    if (!clientId || !clientSecret) throw new Error('TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET not set');
+
+    const res = await fetch('https://id.twitch.tv/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            grant_type: 'client_credentials'
+        }).toString()
+    });
+    if (!res.ok) throw new Error(`Twitch OAuth failed: ${res.status}`);
+    const data = await res.json();
+    if (!data.access_token) throw new Error('No access_token in Twitch OAuth response');
+    _twitchToken = data.access_token;
+    _tokenExpiry = Date.now() + (data.expires_in - 3600) * 1000;
+    console.log('[Twitch] App token refreshed');
+    return _twitchToken;
+}
+
+async function getTwitchToken() {
+    if (_twitchToken && Date.now() < _tokenExpiry) return _twitchToken;
+    return fetchTwitchAppToken();
+}
+
+async function getTwitchStreamUrl(channel) {
+    const token = await getTwitchToken();
+    const clientId = process.env.TWITCH_CLIENT_ID;
+
+    const gqlRes = await fetch('https://gql.twitch.tv/gql', {
+        method: 'POST',
+        headers: {
+            'Client-ID': clientId,
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            operationName: 'PlaybackAccessToken',
+            extensions: {
+                persistedQuery: {
+                    version: 1,
+                    sha256Hash: '0828119ded1c13477966434e15800ff57ddacf13ba1911c129dc2200705b0712'
+                }
+            },
+            variables: {
+                isLive: true,
+                login: channel,
+                isVod: false,
+                vodID: '',
+                playerType: 'embed'
+            }
+        })
+    });
+
+    if (!gqlRes.ok) throw new Error(`Twitch GQL error: ${gqlRes.status}`);
+    const gqlData = await gqlRes.json();
+    const accessToken = gqlData?.data?.streamPlaybackAccessToken;
+
+    if (!accessToken) {
+        const errors = gqlData?.errors?.map(e => e.message).join(', ');
+        throw new Error(errors || 'No stream access token — stream may be offline');
+    }
+
+    const params = new URLSearchParams({
+        client_id: clientId,
+        token: accessToken.value,
+        sig: accessToken.signature,
+        allow_source: 'true',
+        allow_audio_only: 'true'
+    });
+
+    const m3u8Res = await fetch(
+        `https://usher.ttvnw.net/api/channel/hls/${channel}.m3u8?${params}`
+    );
+    if (m3u8Res.status === 404) throw new Error('Stream is offline');
+    if (!m3u8Res.ok) throw new Error(`Usher returned ${m3u8Res.status}`);
+
+    const playlist = await m3u8Res.text();
+    const lines = playlist.split('\n');
+    const streams = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('#EXT-X-STREAM-INF:')) {
+            const nameMatch = lines[i].match(/NAME="([^"]+)"/);
+            const quality = nameMatch ? nameMatch[1] : 'unknown';
+            let j = i + 1;
+            while (j < lines.length && lines[j].startsWith('#')) j++;
+            if (j < lines.length && lines[j].trim()) {
+                streams.push({ quality, url: lines[j].trim() });
+            }
+        }
+    }
+
+    if (streams.length === 0) throw new Error('No streams found in master playlist');
+    const best = streams.find(s => /source|chunked/i.test(s.quality)) || streams[0];
+    return best.url;
+}
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
@@ -95,11 +200,10 @@ app.get('/stream', async (req, res) => {
     }
 
     try {
-        const streams = await twitch.getStream(channel);
-        const best = streams.find(s => s.quality.includes('source')) || streams[0];
-        if (!best) return res.status(404).json({ error: 'No hay streams disponibles' });
-        res.json({ url: best.url });
+        const url = await getTwitchStreamUrl(channel);
+        res.json({ url });
     } catch (error) {
+        console.error(`[Twitch] Error getting stream for ${channel}:`, error.message);
         res.status(500).json({ error: 'No se pudo obtener el stream', detail: error.message });
     }
 });
