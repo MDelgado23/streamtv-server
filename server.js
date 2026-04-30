@@ -36,15 +36,14 @@ async function getTwitchToken() {
     return fetchTwitchAppToken();
 }
 
-async function getTwitchStreamUrl(channel) {
-    const token = await getTwitchToken();
-    const clientId = process.env.TWITCH_CLIENT_ID;
+// GQL only accepts Twitch's own internal client IDs — the web player's is the standard choice
+const TWITCH_GQL_CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
 
+async function getTwitchStreamUrl(channel) {
     const gqlRes = await fetch('https://gql.twitch.tv/gql', {
         method: 'POST',
         headers: {
-            'Client-ID': clientId,
-            'Authorization': `Bearer ${token}`,
+            'Client-ID': TWITCH_GQL_CLIENT_ID,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -83,7 +82,7 @@ async function getTwitchStreamUrl(channel) {
     }
 
     const params = new URLSearchParams({
-        client_id: clientId,
+        client_id: TWITCH_GQL_CLIENT_ID,
         token: accessToken.value,
         sig: accessToken.signature,
         allow_source: 'true',
